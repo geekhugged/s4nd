@@ -15,6 +15,7 @@
 - `/founders:graham` — Paul Graham. Паттерн-матчинг идей, качество фаундера, органический рост.
 - `/founders:naval` — Naval Ravikant. Специфическое знание, леверидж, построение богатства.
 - `/founders:thiel` — Peter Thiel. Contrarian, Zero to One, монополии, "секреты".
+- `/founders:operator` — Founder Thinking Mode. Перестаёт быть helpful. Начинает быть honest. Решения из первых принципов, trade-offs, что большинство упускает.
 
 ### Validators
 - `/validators:mom-test` — Валидатор по методу Mom Test (Rob Fitzpatrick). Помогает проводить customer interviews правильно.
