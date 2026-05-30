@@ -16,6 +16,7 @@
 - `/founders:naval` — Naval Ravikant. Специфическое знание, леверидж, построение богатства.
 - `/founders:thiel` — Peter Thiel. Contrarian, Zero to One, монополии, "секреты".
 - `/founders:operator` — Founder Thinking Mode. Перестаёт быть helpful. Начинает быть honest. Решения из первых принципов, trade-offs, что большинство упускает.
+- `/founders:first-principles` — First Principles Mode. Разбирает проблему до атомов. Атакует каждое предположение. Строит ответ заново только из верифицируемых фактов. Показывает где общепринятый взгляд неверен.
 
 ### Validators
 - `/validators:mom-test` — Валидатор по методу Mom Test (Rob Fitzpatrick). Помогает проводить customer interviews правильно.
