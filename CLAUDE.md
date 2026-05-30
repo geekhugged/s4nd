@@ -19,7 +19,8 @@
 
 ### Validators
 - `/validators:mom-test` — Валидатор по методу Mom Test (Rob Fitzpatrick). Помогает проводить customer interviews правильно.
-- `/validators:devil` — Devil's Advocate. Атакует идею с противоположной стороны.
+- `/validators:devil` — Devil's Advocate. Структурированная атака на идею с 3-5 углов, дипломатично.
+- `/validators:destroyer` — Devil's Advocate Mode. Уничтожает идею без пощады и без смягчений. Заканчивает: "что должно быть правдой, чтобы это сработало."
 
 ### Сессии
 - `/board` — Boardroom: все советники разом реагируют на идею.
