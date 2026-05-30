@@ -25,6 +25,23 @@
 - `/validators:devil` — Devil's Advocate. Структурированная атака на идею с 3-5 углов, дипломатично.
 - `/validators:destroyer` — Devil's Advocate Mode. Уничтожает идею без пощады и без смягчений. Заканчивает: "что должно быть правдой, чтобы это сработало."
 
+### Decision Modes (`/modes`)
+Пять режимов мышления для серьёзных решений. Используй по одному или запускай цепочкой.
+
+- `/modes:chain` — **Цепочка всех пяти режимов подряд.** Используй для любого важного решения.
+
+Порядок цепочки:
+```
+First Principles → Devil's Advocate → Founder Thinking → Therapist CEO → Contrarian Investor
+```
+
+Отдельные режимы:
+- `/founders:first-principles` — Что реально верно? Убрать все предположения.
+- `/validators:destroyer` — Уничтожь идею до того как это сделает рынок.
+- `/founders:operator` — Конкретное решение. Без политесов.
+- `/founders:therapist-ceo` — Какой страх или паттерн блокирует?
+- `/founders:contrarian` — Почему большинство неправы и стоит ли ставить.
+
 ### Сессии
 - `/board` — Boardroom: все советники разом реагируют на идею.
 
