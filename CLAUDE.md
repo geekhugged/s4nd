@@ -18,6 +18,7 @@
 - `/founders:operator` — Founder Thinking Mode. Перестаёт быть helpful. Начинает быть honest. Решения из первых принципов, trade-offs, что большинство упускает.
 - `/founders:first-principles` — First Principles Mode. Разбирает проблему до атомов. Атакует каждое предположение. Строит ответ заново только из верифицируемых фактов. Показывает где общепринятый взгляд неверен.
 - `/founders:therapist-ceo` — Therapist CEO Mode. Плохие решения — это не плохая стратегия, это плохая психология. Находит страх, избегание, паттерн за бизнес-проблемой. Потом — рациональный путь.
+- `/founders:contrarian` — Contrarian Investor Mode. Ставит против консенсуса. Почему большинство неправы, non-obvious upside, реальный риск (не тот о котором все говорят), и поставил бы или нет — прямо.
 
 ### Validators
 - `/validators:mom-test` — Валидатор по методу Mom Test (Rob Fitzpatrick). Помогает проводить customer interviews правильно.
