@@ -70,3 +70,46 @@ def did_experiment(n_cities: int = 20, n_periods: int = 8,
                 "orders": max(0, orders),
             })
     return pd.DataFrame(rows)
+
+
+def ab_test_data(n_per_group: int = 500, true_effect: float = 1.5,
+                 baseline: float = 8.0, std: float = 4.0,
+                 seed: int = 42) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    control = rng.normal(baseline, std, n_per_group)
+    treatment = rng.normal(baseline + true_effect, std, n_per_group)
+    df = pd.DataFrame({
+        "orders": np.concatenate([control, treatment]),
+        "group": ["Контроль"] * n_per_group + ["Тест"] * n_per_group,
+    })
+    df["orders"] = np.maximum(0, df["orders"].round()).astype(int)
+    return df
+
+
+def matching_data(n: int = 1000, true_effect: float = 3.0, seed: int = 42) -> pd.DataFrame:
+    """
+    Observational promo study with two confounders:
+    orders_history and days_since_install.
+    Heavy users are more likely to receive promo.
+    """
+    rng = np.random.default_rng(seed)
+    orders_history = rng.poisson(8, n).astype(float)
+    days_since_install = rng.exponential(90, n)
+
+    logit = -1.5 + 0.15 * orders_history - 0.005 * days_since_install
+    promo_prob = 1 / (1 + np.exp(-logit))
+    promo = rng.binomial(1, promo_prob, n)
+
+    y0 = np.clip(2 + 0.5 * orders_history - 0.01 * days_since_install
+                 + rng.normal(0, 1.5, n), 0, None)
+    y1 = y0 + true_effect
+    y_obs = promo * y1 + (1 - promo) * y0
+
+    return pd.DataFrame({
+        "orders_history": orders_history.round().astype(int),
+        "days_since_install": days_since_install.round().astype(int),
+        "promo": promo,
+        "orders_next_week": np.maximum(0, y_obs).round().astype(int),
+        "y0_true": np.maximum(0, y0).round().astype(int),
+        "y1_true": np.maximum(0, y1).round().astype(int),
+    })
