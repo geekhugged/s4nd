@@ -6,329 +6,275 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import networkx as nx
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import plotly.express as px
 from scipy import stats
+from utils.ui import render_sidebar, render_progress, render_nav
 
 st.set_page_config(page_title="DAGs", page_icon="📊", layout="wide")
+render_sidebar(current=3)
 
 st.title("📊 Модуль 3: DAGs — Причинные Графы")
+render_progress(current=3)
+st.divider()
 
 # ── THEORY ────────────────────────────────────────────────────────────────────
-st.markdown("""
-## Теория
-
+with st.expander("📖 Теория", expanded=True):
+    st.markdown("""
 ### Что такое DAG?
 
-**DAG** (Directed Acyclic Graph) — ориентированный граф без циклов, где:
+**DAG** (Directed Acyclic Graph) — ориентированный граф без циклов:
 - **Узлы** = переменные
-- **Стрелки** = прямые причинные связи ($X \\rightarrow Y$ означает «$X$ причиняет $Y$»)
-- **Нет циклов** — причина не может быть следствием самой себя
+- **Стрелки** = прямые причинные связи ($X \\rightarrow Y$: "$X$ причиняет $Y$")
+- **Нет циклов** — причина не может быть своим следствием
 
-DAG — это **декларация наших убеждений** о причинно-следственной структуре мира.
+DAG — это **декларация** наших причинно-следственных убеждений о мире.
+
+---
 
 ### Три фундаментальные структуры
 
-| Структура | Граф | Свойство |
-|-----------|------|----------|
-| **Цепочка (Chain)** | $X \\rightarrow Z \\rightarrow Y$ | $Z$ блокирует путь при условии на $Z$ |
-| **Развилка (Fork)** | $X \\leftarrow Z \\rightarrow Y$ | $Z$ — конфаундер; блокируется при условии на $Z$ |
-| **Коллайдер (Collider)** | $X \\rightarrow Z \\leftarrow Y$ | Путь заблокирован; **открывается** при условии на $Z$ |
+| Структура | Граф | Что происходит |
+|-----------|------|----------------|
+| **Chain (цепочка)** | $X \\rightarrow Z \\rightarrow Y$ | $Z$ — медиатор. Условие на $Z$ блокирует путь. |
+| **Fork (развилка)** | $X \\leftarrow Z \\rightarrow Y$ | $Z$ — конфаундер. Создаёт ложную корреляцию X~Y. |
+| **Collider (коллайдер)** | $X \\rightarrow Z \\leftarrow Y$ | $Z$ блокирует путь. Условие на $Z$ **открывает** ложную связь! |
+
+---
 
 ### Backdoor Criterion
 
-Чтобы идентифицировать каузальный эффект $X \\rightarrow Y$, нужно **заблокировать все backdoor-пути** (пути из $X$ в $Y$ идущие «против» стрелки из $X$).
+Чтобы идентифицировать $X \\rightarrow Y$, нужно заблокировать **все backdoor-пути** — пути из $X$ в $Y$, идущие "против" стрелки из $X$.
 
-Набор переменных $Z$ удовлетворяет backdoor criterion если:
-1. $Z$ блокирует все backdoor-пути между $X$ и $Y$
-2. $Z$ не содержит потомков $X$
-
-### Правило d-separation
-
-Переменные $X$ и $Y$ **d-разделены** (условно независимы) при условии $Z$ если $Z$ блокирует все пути:
-- **Цепочки и развилки** блокируются при условии на переменную в середине пути
-- **Коллайдеры** открываются при условии на коллайдер или его потомка
+Набор $Z$ удовлетворяет backdoor criterion если:
+1. Блокирует все backdoor-пути между $X$ и $Y$
+2. Не содержит потомков $X$
 """)
 
 st.divider()
 
-# ── GRAPH STRUCTURES VISUALIZATION ───────────────────────────────────────────
+# ── THREE STRUCTURES ──────────────────────────────────────────────────────────
 st.header("🔍 Три фундаментальные структуры")
 
-
-def draw_dag(edges, node_labels=None, highlight_nodes=None, title="", figsize=(4, 3)):
+def dag_fig(edges, pos, title, highlight=None, figsize=(3.5, 2.8)):
     G = nx.DiGraph()
     G.add_edges_from(edges)
     fig, ax = plt.subplots(figsize=figsize)
-    pos = nx.spring_layout(G, seed=42, k=2)
-    colors = []
-    for node in G.nodes():
-        if highlight_nodes and node in highlight_nodes:
-            colors.append("#ff6b35")
-        else:
-            colors.append("#4a90d9")
-    nx.draw(G, pos, ax=ax, with_labels=True,
-            labels=node_labels or {n: n for n in G.nodes()},
-            node_color=colors, node_size=1800,
-            font_size=11, font_color="white", font_weight="bold",
-            arrows=True, arrowsize=20,
-            edge_color="#555", width=2,
-            connectionstyle="arc3,rad=0.1")
-    ax.set_title(title, fontsize=12, fontweight="bold", pad=10)
+    colors = ["#ff6b35" if (highlight and n in highlight) else "#4a90d9"
+              for n in G.nodes()]
+    nx.draw_networkx(G, pos, ax=ax,
+                     node_color=colors, node_size=1600,
+                     font_color="white", font_size=11, font_weight="bold",
+                     edge_color="#555", width=2, arrows=True, arrowsize=22,
+                     connectionstyle="arc3,rad=0.08")
+    ax.set_title(title, fontsize=11, fontweight="bold", pad=8)
+    ax.axis("off")
     fig.patch.set_facecolor("#fafafa")
-    ax.set_facecolor("#fafafa")
     plt.tight_layout()
     return fig
 
+c1, c2, c3 = st.columns(3)
 
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.subheader("Цепочка (Chain)")
-    fig1 = draw_dag(
-        [("X", "Z"), ("Z", "Y")],
-        title="X → Z → Y",
-        highlight_nodes=["Z"],
-    )
-    st.pyplot(fig1)
+with c1:
+    st.subheader("Цепочка")
+    fig = dag_fig([("X","Z"),("Z","Y")],
+                  {"X":(0,0),"Z":(1,0),"Y":(2,0)},
+                  "X → Z → Y", highlight=["Z"])
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
     st.markdown("""
-    **X** влияет на **Y** через медиатор **Z**.
+**Z** — медиатор.
 
-    - Условие на **Z** блокирует путь
-    - *X ⊥ Y | Z*
+- Условие на **Z** блокирует путь X→Y
+- *X ⊥ Y | Z*
 
-    Пример: Промо → Первый заказ → Retention
+Пример: Промо → Открытие приложения → Заказы
     """)
 
-with col2:
-    st.subheader("Развилка (Fork)")
-    fig2 = draw_dag(
-        [("Z", "X"), ("Z", "Y")],
-        title="X ← Z → Y",
-        highlight_nodes=["Z"],
-    )
-    st.pyplot(fig2)
+with c2:
+    st.subheader("Развилка")
+    fig = dag_fig([("Z","X"),("Z","Y")],
+                  {"Z":(1,1),"X":(0,0),"Y":(2,0)},
+                  "X ← Z → Y", highlight=["Z"])
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
     st.markdown("""
-    **Z** — конфаундер, создаёт ложную корреляцию X~Y.
+**Z** — конфаундер.
 
-    - Условие на **Z** блокирует путь
-    - *X ⊥ Y | Z*
+- Создаёт ложную корреляцию X~Y
+- Условие на **Z** блокирует
+- *X ⊥ Y | Z*
 
-    Пример: Сезон → Курьеры, Сезон → Заказы
+Пример: Сезон → Заказы И Сезон → Курьеры
     """)
 
-with col3:
-    st.subheader("Коллайдер (Collider)")
-    fig3 = draw_dag(
-        [("X", "Z"), ("Y", "Z")],
-        title="X → Z ← Y",
-        highlight_nodes=["Z"],
-    )
-    st.pyplot(fig3)
+with c3:
+    st.subheader("Коллайдер ⚠️")
+    fig = dag_fig([("X","Z"),("Y","Z")],
+                  {"X":(0,0),"Y":(2,0),"Z":(1,-1)},
+                  "X → Z ← Y", highlight=["Z"])
+    st.pyplot(fig, use_container_width=True)
+    plt.close(fig)
     st.markdown("""
-    **Z** — коллайдер, **блокирует** путь по умолчанию.
+**Z** — коллайдер.
 
-    - Условие на **Z** **открывает** путь (опасно!)
-    - Без условия: *X ⊥ Y*
+- Путь **заблокирован** по умолчанию
+- Условие на **Z** **открывает** ложную связь!
 
-    Пример: Способность + Удача → Нанят
+Пример: Навык + Удача → Нанят
     """)
-
-plt.close("all")
 
 st.divider()
 
 # ── FOOD DELIVERY DAG ─────────────────────────────────────────────────────────
-st.header("🍕 DAG для food delivery: эффект промо на заказы")
+st.header("🍕 DAG для food delivery: промо → заказы")
 
-st.markdown("""
-Строим причинный граф для типичной задачи: **влияет ли промо на количество заказов?**
+c_dag, c_exp = st.columns([2, 1])
 
-Переменные:
-- **Promo** — получил ли пользователь промокод
-- **Orders** — число заказов
-- **Activity** — историческая активность пользователя (конфаундер)
-- **AppOpen** — открытия приложения (медиатор)
-- **Rain** — дождь (инструмент — влияет на заказы, но не на промо)
-""")
+with c_dag:
+    G = nx.DiGraph()
+    edges = [("Activity","Promo"), ("Activity","Orders"),
+             ("Promo","AppOpen"), ("AppOpen","Orders"),
+             ("Promo","Orders"), ("Rain","Orders")]
+    G.add_edges_from(edges)
+    pos = {"Activity":(0,1), "Promo":(1,2),
+           "AppOpen":(2.2,2), "Orders":(3,1), "Rain":(3,2.5)}
+    node_colors = {"Activity":"#ff6b35","Promo":"#4a90d9",
+                   "AppOpen":"#43aa8b","Orders":"#4a90d9","Rain":"#9b59b6"}
 
-col_dag, col_explain = st.columns([2, 1])
-
-with col_dag:
-    G_delivery = nx.DiGraph()
-    edges_delivery = [
-        ("Activity", "Promo"),
-        ("Activity", "Orders"),
-        ("Promo", "AppOpen"),
-        ("AppOpen", "Orders"),
-        ("Promo", "Orders"),
-        ("Rain", "Orders"),
-    ]
-    G_delivery.add_edges_from(edges_delivery)
-
-    pos_delivery = {
-        "Activity": (0, 1),
-        "Promo": (1, 2),
-        "AppOpen": (2, 2),
-        "Orders": (3, 1),
-        "Rain": (3, 2.5),
-    }
-
-    node_colors = {
-        "Activity": "#ff6b35",
-        "Promo": "#4a90d9",
-        "AppOpen": "#7bc67e",
-        "Orders": "#4a90d9",
-        "Rain": "#9b59b6",
-    }
-
-    fig_del, ax_del = plt.subplots(figsize=(8, 4))
-    colors = [node_colors[n] for n in G_delivery.nodes()]
-    nx.draw(G_delivery, pos_delivery, ax=ax_del,
-            with_labels=True,
-            node_color=colors, node_size=2200,
-            font_size=10, font_color="white", font_weight="bold",
-            arrows=True, arrowsize=20,
-            edge_color="#555", width=2,
-            connectionstyle="arc3,rad=0.05")
-
-    legend_elements = [
-        mpatches.Patch(color="#ff6b35", label="Конфаундер"),
-        mpatches.Patch(color="#4a90d9", label="Основные переменные"),
-        mpatches.Patch(color="#7bc67e", label="Медиатор"),
-        mpatches.Patch(color="#9b59b6", label="Инструмент (IV)"),
-    ]
-    ax_del.legend(handles=legend_elements, loc="lower left", fontsize=9)
-    ax_del.set_title("Causal DAG: Promo → Orders", fontsize=13, fontweight="bold")
-    fig_del.patch.set_facecolor("#fafafa")
-    ax_del.set_facecolor("#fafafa")
+    fig_d, ax_d = plt.subplots(figsize=(7, 3.8))
+    nx.draw_networkx(G, pos, ax=ax_d,
+                     node_color=[node_colors[n] for n in G.nodes()],
+                     node_size=2200, font_color="white", font_size=9.5, font_weight="bold",
+                     edge_color="#555", width=2, arrows=True, arrowsize=20,
+                     connectionstyle="arc3,rad=0.06")
+    legend = [mpatches.Patch(color="#ff6b35", label="Конфаундер"),
+              mpatches.Patch(color="#4a90d9", label="Переменные интереса"),
+              mpatches.Patch(color="#43aa8b", label="Медиатор"),
+              mpatches.Patch(color="#9b59b6", label="Инструмент (IV)")]
+    ax_d.legend(handles=legend, loc="lower left", fontsize=8)
+    ax_d.set_title("Causal DAG: Promo → Orders", fontsize=12, fontweight="bold")
+    ax_d.axis("off")
+    fig_d.patch.set_facecolor("#fafafa")
     plt.tight_layout()
-    st.pyplot(fig_del)
-    plt.close("all")
+    st.pyplot(fig_d, use_container_width=True)
+    plt.close(fig_d)
 
-with col_explain:
+with c_exp:
     st.markdown("""
-    **Backdoor-пути из Promo в Orders:**
+**Backdoor-путь:**
+`Promo ← Activity → Orders`
 
-    `Promo ← Activity → Orders`
+Чтобы найти истинный эффект промо → контролируй **Activity**.
 
-    Это единственный backdoor-путь.
-    Чтобы идентифицировать эффект промо — нужно **контролировать Activity**.
+---
 
-    ---
+**Медиатор AppOpen:**
+Часть эффекта промо идёт через открытие приложения. Не контролируй AppOpen — заблокируешь каузальный путь.
 
-    **Медиатор AppOpen:**
+---
 
-    Часть эффекта промо идёт через открытие приложения.
-    Если контролировать AppOpen — мы заблокируем часть каузального пути.
+**Инструмент Rain:**
+Дождь → больше заказов, но дождь не влияет на назначение промо. Валидный инструмент для IV (Модуль 7).
 
-    ---
+---
 
-    **Инструмент Rain:**
-
-    Дождь влияет на заказы, но **не** на назначение промо.
-    Это валидный инструмент для IV-подхода (Модуль 7).
+**Вывод:**
+Достаточно контролировать **Activity**, чтобы идентифицировать эффект промо.
     """)
 
 st.divider()
 
-# ── COLLIDER BIAS SIMULATION ──────────────────────────────────────────────────
-st.header("⚠️ Симуляция: Ловушка коллайдера")
+# ── COLLIDER BIAS ─────────────────────────────────────────────────────────────
+st.header("⚠️ Ловушка коллайдера: Berkson's Bias")
 st.markdown("""
-**Пример:** Компания анализирует данные только по **нанятым** курьерам.
-
-- Навык (Skill) и Удача (Luck) независимы в популяции
-- Но оба влияют на найм (Hired) — коллайдер
-- Среди нанятых: низкий навык компенсируется высокой удачей и наоборот → **ложная отрицательная корреляция**
+Навык и Удача независимы. Но оба влияют на найм (коллайдер).
+**Среди нанятых**: низкий навык компенсируется удачей → ложная отрицательная корреляция.
 """)
 
-col_ctrl_c, col_plot_c = st.columns([1, 3])
-
-with col_ctrl_c:
-    n_c = st.slider("Размер популяции", 200, 2000, 800, key="coll_n")
+c5, c6 = st.columns([1, 3])
+with c5:
+    n_c = st.slider("Размер популяции", 200, 2000, 800)
     threshold = st.slider("Порог найма (skill + luck >)", 0.0, 2.0, 0.5, step=0.1)
 
 rng = np.random.default_rng(99)
 skill = rng.normal(0, 1, n_c)
-luck = rng.normal(0, 1, n_c)
+luck  = rng.normal(0, 1, n_c)
 hired = (skill + luck) > threshold
-df_c = pd.DataFrame({"skill": skill, "luck": luck, "hired": hired})
+df_c  = pd.DataFrame({"skill": skill, "luck": luck,
+                       "Статус": np.where(hired, "Нанят", "Не нанят")})
 
-r_all, _ = stats.pearsonr(df_c["skill"], df_c["luck"])
-r_hired, _ = stats.pearsonr(df_c[df_c.hired]["skill"], df_c[df_c.hired]["luck"])
+r_all,   _ = stats.pearsonr(df_c["skill"], df_c["luck"])
+r_hired, _ = stats.pearsonr(df_c[hired]["skill"], df_c[hired]["luck"])
 
-with col_plot_c:
+with c6:
     fig_c = px.scatter(
-        df_c, x="skill", y="luck",
-        color=df_c["hired"].map({True: "Нанят", False: "Не нанят"}),
-        color_discrete_map={"Нанят": "#4caf50", "Не нанят": "#e0e0e0"},
-        opacity=0.6,
-        labels={"skill": "Навык", "luck": "Удача", "color": ""},
+        df_c, x="skill", y="luck", color="Статус", opacity=0.55,
+        color_discrete_map={"Нанят":"#4caf50","Не нанят":"#e0e0e0"},
+        labels={"skill":"Навык","luck":"Удача"},
         title=f"Все: r = {r_all:.2f}  |  Только нанятые: r = {r_hired:.2f}",
     )
     st.plotly_chart(fig_c, use_container_width=True)
 
 col_m1, col_m2 = st.columns(2)
 with col_m1:
-    st.metric("Корреляция в полной выборке", f"{r_all:.3f}", help="Навык и Удача независимы")
+    st.metric("Корреляция: вся популяция", f"{r_all:.3f}")
 with col_m2:
-    st.metric("Корреляция среди нанятых", f"{r_hired:.3f}",
+    st.metric("Корреляция: только нанятые", f"{r_hired:.3f}",
               delta="Ложная отрицательная", delta_color="inverse")
 
-st.error(
-    "Если анализировать только нанятых курьеров — навык и удача кажутся **отрицательно** связанными. "
-    "Это Berkson's bias — типичная ловушка коллайдера."
-)
+st.error("Анализ только по нанятым (survivor bias) — классическая ловушка коллайдера.")
 
 st.divider()
 
 # ── CODE ──────────────────────────────────────────────────────────────────────
-st.header("💻 Python: строим DAG с networkx")
-
+st.header("💻 Python-код")
 with st.expander("Показать код"):
     st.code("""
 import networkx as nx
 import matplotlib.pyplot as plt
 
-# Строим DAG для задачи промо → заказы
+# DAG: промо → заказы
 G = nx.DiGraph()
 G.add_edges_from([
-    ("Activity", "Promo"),    # конфаундер
-    ("Activity", "Orders"),   # конфаундер
-    ("Promo", "Orders"),      # основной эффект
-    ("Promo", "AppOpen"),     # медиатор
-    ("AppOpen", "Orders"),    # медиатор
-    ("Rain", "Orders"),       # инструмент
+    ("Activity", "Promo"),   # конфаундер
+    ("Activity", "Orders"),  # конфаундер
+    ("Promo",    "Orders"),  # эффект интереса
+    ("Promo",    "AppOpen"), # медиатор
+    ("AppOpen",  "Orders"),  # медиатор
+    ("Rain",     "Orders"),  # инструмент
 ])
 
-# Находим все пути из Promo в Orders
-all_paths = list(nx.all_simple_paths(G, "Promo", "Orders"))
-print("Все прямые пути:", all_paths)
+# Все пути из Promo в Orders
+for path in nx.all_simple_paths(G, "Promo", "Orders"):
+    print(" → ".join(path))
+# Promo → Orders
+# Promo → AppOpen → Orders
 
-# Backdoor-пути (идут против стрелки из Promo)
-# Ищем вручную: Promo <- Activity -> Orders
-# Для автоматической идентификации используйте dowhy или causaldag
+# Backdoor-путь (вручную): Promo ← Activity → Orders
+# Для блокировки нужно контролировать Activity
 
 # Визуализация
-pos = {"Activity": (0,1), "Promo": (1,2), "AppOpen": (2,2),
-       "Orders": (3,1), "Rain": (3,2.5)}
-nx.draw(G, pos, with_labels=True, node_size=2000,
-        node_color="#4a90d9", font_color="white",
-        font_weight="bold", arrows=True, arrowsize=20)
-plt.title("Causal DAG: Promo → Orders")
+pos = {"Activity":(0,1), "Promo":(1,2), "AppOpen":(2,2),
+       "Orders":(3,1), "Rain":(3,2.5)}
+nx.draw_networkx(G, pos, with_labels=True,
+                 node_size=2000, node_color="#4a90d9",
+                 font_color="white", arrows=True)
+plt.title("Causal DAG")
+plt.axis("off")
 plt.show()
 """, language="python")
 
 st.divider()
-
-# ── TAKEAWAYS ─────────────────────────────────────────────────────────────────
-st.header("✅ Главное из модуля")
+st.header("✅ Главное")
 st.success("""
-1. **DAG** — инструмент для записи наших предположений о причинно-следственных связях.
-2. **Три структуры**: цепочка (медиатор), развилка (конфаундер), коллайдер.
-3. **Backdoor criterion**: чтобы найти истинный эффект X→Y, блокируй все backdoor-пути.
-4. **Коллайдер — ловушка**: условие на коллайдер *открывает* ложную связь.
-5. В food delivery: Activity — конфаундер для оценки эффекта промо. AppOpen — медиатор. Rain — потенциальный инструмент.
+1. DAG — инструмент для явной записи причинно-следственных убеждений.
+2. Fork (развилка) — конфаундер, создаёт ложную корреляцию. Блокируется условием.
+3. Chain (цепочка) — медиатор. Условие на медиатор блокирует каузальный путь.
+4. Collider (коллайдер) — условие открывает ложную связь (Berkson's bias).
+5. Backdoor criterion: контролируй конфаундеры, не трогай медиаторы и потомков.
 """)
-st.markdown("**👉 Следующий модуль:** A/B Testing (скоро)")
+render_nav(current=3)
