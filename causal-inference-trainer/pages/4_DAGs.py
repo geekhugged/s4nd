@@ -15,10 +15,10 @@ from scipy import stats
 from utils.ui import render_sidebar, render_progress, render_nav
 
 st.set_page_config(page_title="DAGs", page_icon="📊", layout="wide")
-render_sidebar(current=3)
+render_sidebar(current=4)
 
 st.title("📊 Модуль 3: DAGs — Причинные Графы")
-render_progress(current=3)
+render_progress(current=4)
 st.divider()
 
 # ── THEORY ────────────────────────────────────────────────────────────────────
@@ -277,4 +277,4 @@ st.success("""
 4. Collider (коллайдер) — условие открывает ложную связь (Berkson's bias).
 5. Backdoor criterion: контролируй конфаундеры, не трогай медиаторы и потомков.
 """)
-render_nav(current=3)
+render_nav(current=4)

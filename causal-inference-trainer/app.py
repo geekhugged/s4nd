@@ -22,23 +22,25 @@ with st.sidebar:
 
 # ── MODULE CARDS ──────────────────────────────────────────────────────────────
 MODULES = [
-    (1, "🔗", "Корреляция vs Причинность",
+    (1,  "📐", "Базовая статистика",
+     "Распределения, CLT, доверительные интервалы, p-value.", True),
+    (2, "🔗", "Корреляция vs Причинность",
      "Конфаундеры, ложные корреляции, первый вопрос причинности.", True),
-    (2, "🎯", "Potential Outcomes",
+    (3, "🎯", "Potential Outcomes",
      "Модель Рубина, контрфактуалы, ATE, selection bias.", True),
-    (3, "📊", "DAGs",
+    (4, "📊", "DAGs",
      "Причинные графы, fork/chain/collider, backdoor criterion.", True),
-    (4, "🧪", "A/B Testing",
+    (5, "🧪", "A/B Testing",
      "RCT, рандомизация, статистическая мощность.", False),
-    (5, "⚖️", "Matching & IPW",
+    (6, "⚖️", "Matching & IPW",
      "Propensity score, matching, inverse probability weighting.", False),
-    (6, "📈", "Difference-in-Differences",
+    (7, "📈", "Difference-in-Differences",
      "DiD, parallel trends, event study.", False),
-    (7, "🎲", "Instrumental Variables",
+    (8, "🎲", "Instrumental Variables",
      "IV, 2SLS, как искать инструменты.", False),
-    (8, "📉", "Regression Discontinuity",
+    (9, "📉", "Regression Discontinuity",
      "RDD, sharp vs fuzzy, выбор bandwidth.", False),
-    (9, "🤖", "Causal ML",
+    (10, "🤖", "Causal ML",
      "Double ML, CATE, heterogeneous effects, EconML.", False),
 ]
 
@@ -73,7 +75,9 @@ st.divider()
 st.subheader("🗺️ Путь обучения")
 st.markdown("""
 ```
-Корреляция vs Причинность          ← начни здесь
+Базовая статистика                  ← начни здесь
+        ↓
+Корреляция vs Причинность
         ↓
 Potential Outcomes (ATE, selection bias)
         ↓

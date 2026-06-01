@@ -11,11 +11,11 @@ from utils.generators import ice_cream_drowning, couriers_vs_orders
 from utils.ui import render_sidebar, render_progress, render_nav
 
 st.set_page_config(page_title="Корреляция vs Причинность", page_icon="🔗", layout="wide")
-render_sidebar(current=1)
+render_sidebar(current=2)
 
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.title("🔗 Модуль 1: Корреляция vs Причинность")
-render_progress(current=1)
+render_progress(current=2)
 st.divider()
 
 # ── THEORY ────────────────────────────────────────────────────────────────────
@@ -199,4 +199,4 @@ st.success("""
 5. В food delivery: большинство операционных гипотез требуют проверки на конфаундеры.
 """)
 
-render_nav(current=1)
+render_nav(current=2)

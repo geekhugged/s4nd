@@ -11,10 +11,10 @@ from utils.generators import promo_with_selection_bias
 from utils.ui import render_sidebar, render_progress, render_nav
 
 st.set_page_config(page_title="Potential Outcomes", page_icon="🎯", layout="wide")
-render_sidebar(current=2)
+render_sidebar(current=3)
 
 st.title("🎯 Модуль 2: Potential Outcomes")
-render_progress(current=2)
+render_progress(current=3)
 st.divider()
 
 # ── THEORY ────────────────────────────────────────────────────────────────────
@@ -205,4 +205,4 @@ st.success("""
 4. Selection bias возникает когда воздействие назначается не случайно.
 5. В food delivery: пользователи с промо уже более активны → наивная оценка завышает эффект.
 """)
-render_nav(current=2)
+render_nav(current=3)
